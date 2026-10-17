@@ -45,7 +45,7 @@ When the goal is complete, or when a call in HISTORY already returned everything
  *
  * @returns {Promise<{tool: string, args: object, rationale: string}>}
  */
-export async function plan(goal, { history = [], apiKey, model = 'gemini-2.5-flash' } = {}) {
+export async function plan(goal, { history = [], apiKey, model = 'gemini-3.5-flash-lite' } = {}) {
   if (!apiKey) {
     throw new Error(
       'GEMINI_API_KEY is not set. Add it to .env (see .env.example).',
@@ -82,9 +82,10 @@ Decide the single next call.`;
       temperature: 0,
       responseMimeType: 'application/json',
       maxOutputTokens: 2048,
-      // Gemini 2.5 Flash reasons by default. For a one-tool-call decision that
-      // reasoning is pure latency, and worse: it competes for the output token
-      // budget, so the JSON comes back truncated mid-string and JSON.parse dies.
+      // Reasoning is pure latency for a one-tool-call decision, and worse,
+      // it competes for the output budget so the JSON can come back
+      // truncated mid-string. Where the model family accepts it, this turns
+      // reasoning off. Where it does not, callGemini() drops the field.
       thinkingConfig: { thinkingBudget: 0 },
     },
   };
@@ -111,40 +112,85 @@ Decide the single next call.`;
   };
 }
 
-/** One retry on transient failures — demos do not get to fall over. */
-async function callGemini(model, apiKey, body, attempt = 1) {
-  const res = await fetch(`${ENDPOINT}/${model}:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+/**
+ * Gemini's thinking controls are not stable across model families.
+ * `gemini-2.5-flash` and `gemini-3.1-flash-lite` accept
+ * `thinkingConfig: { thinkingBudget: 0 }`. `gemini-3.5-flash-lite` rejects
+ * the field outright with a 400, whether the value is `thinkingBudget: 0`
+ * or `thinkingLevel: 'none'`.
+ *
+ * Rather than hardcode a per-model table that will rot the next time
+ * Google renames something, send the strictest config first and silently
+ * drop it if the model refuses. Verified against 2.5-flash, 3.1-flash-lite,
+ * 3.5-flash and 3.5-flash-lite.
+ */
+function withoutThinkingConfig(body) {
+  const gen = body?.generationConfig;
+  if (!gen || gen.thinkingConfig === undefined) return null;
+  const { thinkingConfig, ...rest } = gen;
+  return { ...body, generationConfig: rest };
+}
 
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '');
-    const transient = res.status === 429 || res.status >= 500;
-    if (transient && attempt === 1) {
-      await new Promise((r) => setTimeout(r, 2500));
-      return callGemini(model, apiKey, body, 2);
+/** Send the request, degrading the config rather than failing the run. */
+async function callGemini(model, apiKey, body) {
+  let payload = body;
+  let transientRetries = 0;
+
+  for (let round = 0; round < 3; round++) {
+    const res = await fetch(`${ENDPOINT}/${model}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      const { text, finishReason } = extractText(json);
+      if (!text) {
+        throw new Error(`Gemini returned no text: ${JSON.stringify(json).slice(0, 300)}`);
+      }
+      if (finishReason === 'MAX_TOKENS') {
+        throw new Error(
+          `Gemini hit the output token limit and returned truncated JSON, so the ` +
+          `tool call could not be parsed. Raw output was:\n${text.slice(0, 400)}`,
+        );
+      }
+      return text;
     }
-    throw new Error(
-      `Gemini ${res.status} ${res.statusText} — ${detail.slice(0, 300)}`,
-    );
+
+    const detail = await res.text().catch(() => '');
+    const message = `${res.status} ${res.statusText} — ${detail.slice(0, 300)}`;
+
+    // 400 + a thinkingConfig we sent = this model family does not accept it.
+    if (res.status === 400) {
+      const stripped = withoutThinkingConfig(payload);
+      if (stripped) {
+        payload = stripped;
+        continue;
+      }
+    }
+
+    // Rate limits and server errors are worth one patient retry — a live
+    // demo should not die on a transient blip.
+    if ((res.status === 429 || res.status >= 500) && transientRetries < 1) {
+      transientRetries++;
+      await new Promise((r) => setTimeout(r, 2500));
+      continue;
+    }
+
+    if (res.status === 429) {
+      throw new Error(
+        `Gemini rate limit or quota exhausted (429).\n` +
+        `  → This is the free tier. Check quota at ai.dev/rate-limit\n` +
+        `  → Or set PAYFLOW_REPLAY=1 to run the recorded beat sequences\n` +
+        `  ${detail.slice(0, 160)}`,
+      );
+    }
+
+    throw new Error(`Gemini ${message}`);
   }
 
-  const json = await res.json();
-  const { text, finishReason } = extractText(json);
-
-  if (!text) {
-    throw new Error(`Gemini returned no text: ${JSON.stringify(json).slice(0, 300)}`);
-  }
-  if (finishReason === 'MAX_TOKENS') {
-    throw new Error(
-      `Gemini hit the output token limit and returned truncated JSON, so the ` +
-      `tool call could not be parsed. This means the model spent its budget on ` +
-      `reasoning. Raw output was:\n${text.slice(0, 400)}`,
-    );
-  }
-  return text;
+  throw new Error('Gemini call failed after 3 attempts');
 }
 
 /**

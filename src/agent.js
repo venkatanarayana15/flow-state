@@ -61,8 +61,20 @@ export function readVerdict(decision) {
     return { status: 'deny', reason: why || 'blocked by policy', matchedPolicy };
   }
 
-  // No `action`. Fall back to the boolean, but only trust it in the
-  // permissive direction; an unreadable decision is not a licence to act.
+  /* `action` is the authoritative field. If it is present but is not a value
+     we recognise — a new backend action, a typo, a future enum member — we
+     must NOT fall through to the boolean. Doing that is fail-open: an unknown
+     action that happens to carry `allowed: true` would run the tool. An
+     action we cannot interpret is treated as a refusal. */
+  if (action !== undefined && action !== null) {
+    return {
+      status: 'deny',
+      reason: why || `unrecognised enforcement action "${String(action)}" — failing closed`,
+      matchedPolicy,
+    };
+  }
+
+  /* `action` is absent entirely, so the boolean is all there is. */
   if (allowed === true) {
     return { status: 'allow', reason: why || 'within signed scope', matchedPolicy };
   }

@@ -16,6 +16,7 @@
     "beat:users": "node agent-cli.js users",
     "beat:ungoverned": "node agent-cli.js ungoverned",
     "beats": "node agent-cli.js all",
+    "test": "node --test tests/*.test.js",
     "check": "node check-setup.js"
   },
   "dependencies": {

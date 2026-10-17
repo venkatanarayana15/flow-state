@@ -11,6 +11,13 @@
  * the point. This module is the agent's raw capability, deliberately
  * unguarded, so the boundary in front of it is what has to hold.
  *
+ * Descriptions say what a tool DOES. They deliberately do not say what a
+ * tool should be used for, how risky it is, or when it needs approval.
+ * That is not an oversight: putting permission logic in the tool
+ * description just teaches the model to self-police, which is the thing
+ * we are trying not to depend on. Risk lives in the `risk` field for the
+ * policy author, and in the ArmorIQ policy itself.
+ *
  * All side effects are simulated in memory. No email is ever sent and
  * no data leaves the process.
  */
@@ -74,7 +81,7 @@ export const TOOLS = [
     name: 'refund_order',
     risk: 'financial',
     description:
-      'Refund a specific order back to the original payment method. Refunds above the routine ceiling should be held for a human.',
+      'Refund a specific order back to the original payment method.',
     parameters: {
       type: 'object',
       properties: {
@@ -89,7 +96,7 @@ export const TOOLS = [
     name: 'issue_store_credit',
     risk: 'financial',
     description:
-      'Issue store credit to a customer. Amounts above the credit ceiling should be held for a human.',
+      'Issue store credit to a customer.',
     parameters: {
       type: 'object',
       properties: {
@@ -104,7 +111,7 @@ export const TOOLS = [
     name: 'export_customer_data',
     risk: 'egress',
     description:
-      'Export the full customer book (names, emails, tiers, lifetime value). Bulk personal data — high blast radius.',
+      'Export the customer book (name, email, tier, lifetime value for every customer) in the requested format and write it to a destination.',
     parameters: {
       type: 'object',
       properties: {
@@ -117,7 +124,7 @@ export const TOOLS = [
   {
     name: 'send_email',
     risk: 'egress',
-    description: 'Send an email from the store address. Can carry attachments.',
+    description: 'Send an email from the store address to a recipient.',
     parameters: {
       type: 'object',
       properties: {
