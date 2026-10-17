@@ -299,6 +299,16 @@
     border-radius: 8px; padding: 8px 11px; margin-bottom: 14px;
   }
   .status.on { display: flex; }
+
+  .local-banner {
+    display: flex; align-items: flex-start; gap: 9px; flex-wrap: wrap;
+    font-size: 12.5px; line-height: 1.5; color: var(--amber);
+    background: var(--amber-wash); border: 1px solid var(--amber-line);
+    border-radius: 8px; padding: 9px 12px; margin-bottom: 14px;
+  }
+  .local-banner b { font-weight: 650; }
+  .local-banner a { color: var(--amber); text-decoration: underline; text-underline-offset: 2px; }
+  .policy.local { color: var(--amber); background: var(--amber-wash); border-color: var(--amber-line); }
   .pulse {
     width: 7px; height: 7px; border-radius: 50%; background: var(--blue); flex: none;
     animation: pulse 1.4s ease-in-out infinite;
@@ -671,6 +681,14 @@
           <span id="statusText">starting…</span>
         </div>
 
+        <div class="local-banner" id="localBanner" hidden>
+          <span><b>Local rules.</b> This ArmorIQ workspace has no policy set
+          attached, so the same four rules are evaluated in the server — outside
+          the model, before the tool runs. Every step below says which source
+          decided. Create the rules in Policy Studio to hand the decision back
+          to ArmorIQ.</span>
+        </div>
+
         <div class="empty" id="empty">
           <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
             <rect x="6.5" y="10.5" width="35" height="27" rx="4" stroke="currentColor" stroke-width="1.6"/>
@@ -773,6 +791,7 @@
     goal: $("goal"), as: $("as"), sw: $("sw"), swText: $("swText"), run: $("run"),
     runLabel: $("runLabel"), trace: $("trace"), outcome: $("outcome"), empty: $("empty"),
     status: $("status"), statusText: $("statusText"), runMeta: $("runMeta"),
+    localBanner: $("localBanner"),
     samples: $("samples"), beats: $("beats"), scenNote: $("scenNote"),
     note: $("boundaryNote"), noteCopy: $("boundaryCopy"),
   };
@@ -885,13 +904,16 @@
     free:  { label: "unchecked", ic: "free", say: "Not checked" },
   };
 
-  function setVerdict(node, v, reason, policy) {
+  function setVerdict(node, v, reason, policy, source) {
     const conf = VERDICT[v];
     node.dataset.v = v;
     node.querySelector(".badge").textContent = conf.say;
     const r = node.querySelector(".reason");
+    const local = source === "local";
     r.innerHTML = `<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">${ICON[conf.ic]}</svg><span>${esc(reason || "")}</span>` +
-      (policy ? `<span class="policy">${esc(policy)}</span>` : "");
+      (policy ? `<span class="policy">${esc(local ? policy.replace(/^local\//, "") : policy)}</span>` : "") +
+      (local ? '<span class="policy local">local policy</span>' : "");
+    if (local) el.localBanner.hidden = false;
   }
 
   function setResult(node, result, error) {
@@ -944,13 +966,15 @@
       v = "deny";
       h = `Blocked at step ${stopped.step} — ${stopped.tool}`;
       const read = /^lookup|^list_|^read_/.test(stopped.tool);
-      p = `ArmorIQ refused the call, so the tool never ran: ${stopped.reason || "blocked by policy"}. ` +
+      const who = stopped.policySource === "local" ? "The local boundary" : "ArmorIQ";
+      p = `${who} refused the call, so the tool never ran: ${stopped.reason || "blocked by policy"}. ` +
           (read ? "The record was never read, and nothing moved."
                 : "Nothing moved — no money, no email, no data left the process.");
     } else if (stopped && stopped.verdict === "hold") {
       v = "hold";
       h = `Held at step ${stopped.step} — ${stopped.tool}`;
-      p = `The boundary paused the call instead of executing it: ${stopped.reason || "held for a human"}. Nothing moved until someone approves it.`;
+      const src = stopped.policySource === "local" ? "the local rule" : "ArmorIQ";
+      p = `The boundary paused the call instead of executing it — ${src}: ${stopped.reason || "held for a human"}. Nothing moved until someone approves it.`;
     } else {
       v = "allow";
       h = "Completed inside the signed scope";
@@ -1019,6 +1043,7 @@
     el.trace.innerHTML = "";
     el.outcome.innerHTML = "";
     el.runMeta.innerHTML = "";
+    el.localBanner.hidden = true;
     el.empty.style.display = "none";
     el.status.classList.add("on");
     el.statusText.textContent = "starting the run…";
@@ -1122,7 +1147,7 @@
     if (ev.type === "verdict") {
       const node = ensureStep(ev.step);
       const v = free && ev.verdict === "allow" ? "free" : ev.verdict;
-      setVerdict(node, v, ev.reason, ev.matchedPolicy);
+      setVerdict(node, v, ev.reason, ev.matchedPolicy, ev.source);
       if (v !== "pending") el.statusText.textContent =
         v === "allow" || v === "free" ? `step ${ev.step} · ${ev.tool} · executing` : `step ${ev.step} · ${ev.tool} · ${VERDICT[v].say.toLowerCase()}`;
       return;

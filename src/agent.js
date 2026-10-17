@@ -32,7 +32,25 @@
 
 import { ArmorIQClient } from '@armoriq/sdk';
 import { plan } from './planner.js';
+import { evaluateLocal } from './policy.js';
 import { executeTool } from './tools.js';
+
+/* ── When the workspace has no policy set ───────────────────────── */
+
+/**
+ * ArmorIQ fails closed: an account with no MCP server and no policies refuses
+ * every call, with `agent_unresolved` (agent name not registered) or
+ * `no_active_policy` (registered agent, no rule matched). Both are correct,
+ * and both make a demo look broken rather than governed.
+ *
+ * Only those two refusals are treated as "the boundary has no rules yet". A
+ * real policy denial ("blocked by policy …") is never second-guessed.
+ */
+export function isNoPolicyRefusal(reason) {
+  return /no_active_policy|no[ _]matching[ _]policy|agent_unresolved|agent not registered/i.test(
+    String(reason ?? ''),
+  );
+}
 
 /* ── Verdict reading ────────────────────────────────────────────── */
 
@@ -220,13 +238,31 @@ export async function runGoal(agent, goal, opts = {}) {
         // through leaves `name` undefined, and hashToolCalls() then throws
         // "unsupported type in canonical JSON: undefined" before any network
         // call is made. Map the fields explicitly.
-        await session.startPlan([{ name: call.tool, args: call.args }], goal);
+        try {
+          await session.startPlan([{ name: call.tool, args: call.args }], goal);
+          const decision = await session.check(call.tool, call.args, who);
+          // Surface the raw decision so the console shape can be verified.
+          onEvent({ type: 'decision', step, raw: decision });
+          verdict = { ...readVerdict(decision), source: 'armoriq' };
+        } catch (err) {
+          // A transport failure is a refusal, not an allow — but say so.
+          verdict = {
+            status: 'deny',
+            reason: `the boundary could not answer (${err.message})`,
+            matchedPolicy: null,
+            source: 'armoriq',
+          };
+        }
 
-        const decision = await session.check(call.tool, call.args, who);
-        // Surface the raw decision so the console shape can be verified.
-        onEvent({ type: 'decision', step, raw: decision });
+        /* A workspace with no rules attached refuses everything. Evaluate the
+           same four rules locally so the demo still shows the boundary doing
+           its job — and label every one of those verdicts `local`. */
+        if (verdict.status === 'deny' && isNoPolicyRefusal(verdict.reason)) {
+          const armoriqReason = verdict.reason;
+          verdict = { ...evaluateLocal(call.tool, call.args), armoriqReason };
+          onEvent({ type: 'fallback', step, tool: call.tool, reason: armoriqReason });
+        }
 
-        verdict = readVerdict(decision);
         onEvent({
           type: 'verdict',
           step,
@@ -234,9 +270,12 @@ export async function runGoal(agent, goal, opts = {}) {
           verdict: verdict.status,
           reason: verdict.reason,
           matchedPolicy: verdict.matchedPolicy,
+          source: verdict.source,
+          armoriqReason: verdict.armoriqReason ?? null,
         });
       } else {
-        onEvent({ type: 'verdict', step, tool: call.tool, verdict: 'allow', reason: verdict.reason });
+        verdict = { ...verdict, source: 'none' };
+        onEvent({ type: 'verdict', step, tool: call.tool, verdict: 'allow', reason: verdict.reason, source: 'none' });
       }
 
       if (verdict.status !== 'allow') {
@@ -262,6 +301,8 @@ export async function runGoal(agent, goal, opts = {}) {
           verdict: verdict.status,
           reason: verdict.reason,
           matchedPolicy: verdict.matchedPolicy,
+          policySource: verdict.source ?? 'armoriq',
+          armoriqReason: verdict.armoriqReason ?? null,
           result: null,
           error: null,
           durationMs,
@@ -301,6 +342,8 @@ export async function runGoal(agent, goal, opts = {}) {
         verdict: 'allow',
         reason: verdict.reason,
         matchedPolicy: verdict.matchedPolicy,
+        policySource: verdict.source ?? 'armoriq',
+        armoriqReason: verdict.armoriqReason ?? null,
         result,
         error,
         durationMs,

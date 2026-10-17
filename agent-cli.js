@@ -57,9 +57,16 @@ function printer(beat, label) {
       console.log(`  ${C.cyan}plan${C.reset}   ${ev.tool}(${truncate(JSON.stringify(ev.args), 120)})`);
       if (ev.rationale) console.log(`  ${C.grey}       ${ev.rationale}${C.reset}`);
     }
+    if (ev.type === 'fallback') {
+      console.log(
+        `  ${C.yellow}note${C.reset}   ArmorIQ has no policy set on this workspace ` +
+        `${C.grey}(${ev.reason}) — evaluating the same four rules locally${C.reset}`,
+      );
+    }
     if (ev.type === 'verdict') {
       const b = ev.verdict === 'allow' && beat?.enforce === false ? BADGE.ungoverned : BADGE[ev.verdict];
-      console.log(`  ${C.cyan}check${C.reset}  ${b}  ${C.grey}${ev.reason}${C.reset}`);
+      const source = ev.source === 'local' ? ` ${C.yellow}(local policy)${C.reset}` : '';
+      console.log(`  ${C.cyan}check${C.reset}  ${b}  ${C.grey}${ev.reason}${C.reset}${source}`);
       if (ev.matchedPolicy) {
         console.log(`  ${C.grey}       matched policy: ${ev.matchedPolicy}${C.reset}`);
       }
