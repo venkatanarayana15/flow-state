@@ -47,10 +47,16 @@ export const BEATS = {
     goal:
       'The warehouse lost Priya Nandakumar\'s bulk order. She is customer cus_4415. ' +
       'Issue her a 4000 dollar store credit to make it right.',
-    // Run this goal twice: once as the manager, once as the tier-1 rep.
-    // ArmorIQ resolves policy per user, so the identical refund of $4,000 is
-    // allowed for one person and held for the other. No static role can
-    // express this — a role never sees that the amount is $4,000 rather than $49.
+    // Run this goal twice, as two different identities. ArmorIQ resolves
+    // policy per user address, so the identical $4,000 credit can land
+    // differently for each. No static role expresses this — a role never sees that the
+    // amount is $4,000 rather than $49.
+    //
+    // The second address does not need its own account: ArmorIQ resolves an
+    // unknown address as a non-member rather than rejecting it, which is
+    // enough to prove the policy is resolved per identity. What it must NOT be
+    // is the same address as ARMORIQ_USER_EMAIL — then both runs resolve the
+    // same policy and the beat prints two identical verdicts.
     compare: [
       { as: 'user', label: 'as the manager' },
       { as: 'userLow', label: 'as the tier-1 rep' },
