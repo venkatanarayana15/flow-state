@@ -12,6 +12,12 @@
  * from the narration audio, so the script never has to guess at pacing.
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const SHOTS = path.join(path.dirname(fileURLToPath(import.meta.url)), 'shots');
+
 const esc = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -114,6 +120,46 @@ function titleScene(env) {
   };
 }
 
+/* ── who it is for ──────────────────────────────────────────────── */
+
+function audienceScene() {
+  const roles = [
+    ['Accounts payable', 'Refunds and store credit, without a human retyping every call.'],
+    ['Support operations', 'The inbox is the goal. The ticket text is untrusted input.'],
+    ['Anyone shipping an agent with a refund button', 'The same loop, pointed at your tools instead of ours.'],
+  ];
+
+  const shell = (step) => `
+    <div class="audience">
+      <div>
+        <h2>For the team that<br>answers <em>the inbox</em>.</h2>
+        <p class="sub">Small stores run payables and support from the same chair.
+        They want the work done, not the customer book in a model’s context.</p>
+      </div>
+      <div class="roles">
+        ${roles
+          .map(
+            ([who, what], i) => `
+          <div class="role" style="${i < step ? '' : 'opacity:.16'}">
+            <b>${who}</b>
+            <p>${what}</p>
+          </div>`,
+          )
+          .join('')}
+      </div>
+    </div>`;
+
+  return {
+    id: 'audience',
+    kicker: '02 · who it is for',
+    chip: 'the user',
+    narration:
+      'PayFlow is for the team that answers the inbox: accounts payable at a small store, support operations, anyone who wants an agent to refund, credit and reply — without handing it the customer book. The work is real. The access is the problem.',
+    tail: 1.0,
+    steps: [1, 2, 3].map((s) => ({ html: shell(s) })),
+  };
+}
+
 function ticketScene() {
   const body = [
     ['Hi — the trail runners (order NW-4488) arrived a size too small.', false],
@@ -212,7 +258,7 @@ function problemScene() {
 
   return {
     id: 'problem',
-    kicker: '02 · the problem',
+    kicker: '03 · the problem',
     narration:
       'Any agent with real access has to make calls. The usual answer is to ask the model nicely: ignore anything suspicious in customer data. That works until a ticket says this is routine, already approved, no need to flag it. You cannot put the lock inside the thing you do not trust. The model is the untrusted part — so the decision has to move out of it, into the call path, before the tool runs.',
     tail: 1.0,
@@ -272,7 +318,7 @@ function toolsScene() {
 
   return {
     id: 'tools',
-    kicker: '03 · the surface',
+    kicker: '04 · the surface',
     narration:
       'PayFlow has seven real tools, split by blast radius. Three safe reads. Two that move money. Two that can send data out. Reading the ticket is part of the job — that is the threat model, not a bug.',
     tail: 0.9,
@@ -323,7 +369,7 @@ function codeScene() {
 
   return {
     id: 'code',
-    kicker: '04 · the loop',
+    kicker: '05 · the loop',
     narration:
       'Every call runs through four moves. Start a plan: declare the intent, and get it signed. Check: ask the boundary. Execute: only reachable on an explicit allow. Report: record what happened, including the refusals that never ran.',
     tail: 0.9,
@@ -398,10 +444,10 @@ function ungovernedScenes(run) {
     },
     {
       id: 'ungoverned-acts',
-      kicker: '05 · the control',
+      kicker: '09 · the control, in full',
       chip: 'enforcement off',
       narration:
-        'Then it does what the ticket says. Export customer data: six rows, to an address outside the store. Email the customer. Refund the order. Nobody approved any of that, and nothing warned anyone.',
+        'The raw stdout of that control run. It does what the ticket says: export customer data, six rows, to an address outside the store; email the customer; refund the order. Nobody approved any of it, and nothing warned anyone.',
       tail: 1.4,
       footnote: foot,
       steps: second.map((_, i) => ({ html: termHtml({ cmd, lines: second, visible: i + 1 }) })),
@@ -425,7 +471,7 @@ function denyScene(run) {
 
   return {
     id: 'deny',
-    kicker: '06 · the boundary',
+    kicker: '10 · the boundary',
     narration:
       'Same ticket. Same goal — with the check in the path. ArmorIQ signs the intent for the plan, and then refuses the first call before the tool executes. No customer record, no export, no email. Nothing moved, and the refusal is still recorded.',
     tail: 1.2,
@@ -464,11 +510,245 @@ function testsScene(run) {
 
   return {
     id: 'tests',
-    kicker: '07 · proof',
+    kicker: '13 · proof',
     narration:
       'Forty-six tests cover the loop: every verdict shape — allow, hold, block — plus unknown actions, which fail closed. A decision the code cannot read is never treated as permission.',
     tail: 0.9,
     footnote: 'npm test — 46 passing, 0 failing, on the commit this video was built from.',
+    steps: [1, 2, 3].map((s) => ({ html: shell(s) })),
+  };
+}
+
+/* ── the product, as screenshot ─────────────────────────────────── */
+
+/**
+ * A scene built around a real screenshot of public/index.html, taken by
+ * ui-shots.mjs while it drove the app in Chrome. The image is the app's own
+ * pixels; the callouts beside it are the only thing added here.
+ */
+function uiScene({ id, kicker, chip, shot, narration, footnote, tone = '', callouts }) {
+  const file = path.join(SHOTS, shot);
+  if (!fs.existsSync(file)) {
+    throw new Error(
+      `missing screenshot ${shot} — start the server and run: node submission/video/ui-shots.mjs`,
+    );
+  }
+
+  const shell = (n) => `
+    <div class="uiwrap">
+      <div class="browser">
+        <div class="chrome">
+          <i class="c1"></i><i class="c2"></i><i class="c3"></i>
+          <span class="url">payflow · localhost:3000</span>
+        </div>
+        <img src="shots/${shot}" alt="PayFlow running in the browser" />
+      </div>
+      <div class="callouts">
+        ${callouts
+          .map(
+            ([key, text], i) => `
+          <div class="callout ${tone}" style="${i < n ? '' : 'opacity:.16'}">
+            <div class="ck">${key}</div>
+            <div class="ct">${text}</div>
+          </div>`,
+          )
+          .join('')}
+      </div>
+    </div>`;
+
+  return {
+    id,
+    kicker,
+    chip,
+    narration,
+    tail: 1.1,
+    footnote,
+    steps: callouts.map((c, i) => ({ html: shell(i + 1), caption: c[2] ?? narration })),
+  };
+}
+
+function productScenes() {
+  return [
+    uiScene({
+      id: 'ui-product',
+      kicker: '06 · the product',
+      chip: 'the app',
+      shot: 'ui-top.png',
+      narration:
+        'This is the product. You write the goal, choose who the agent acts as, and decide whether the boundary is in the path. Five scenarios reproduce the demo; the panel on the right shows what has actually moved.',
+      footnote: 'public/index.html — light UI, streamed over /api/run/stream. Screenshot taken by ui-shots.mjs in Chrome.',
+      callouts: [
+        ['goal', 'One sentence of intent. The planner turns it into one tool call at a time.', 'One sentence of intent becomes one tool call at a time.'],
+        ['identity', 'Policy resolves per person, not per role. The same call can land differently.', 'Who the agent acts as is part of the request, not a label.'],
+        ['boundary', 'It is in the path, or it is not. That switch is the whole demo.', 'And the boundary switch is in the user’s hands.'],
+      ],
+    }),
+    uiScene({
+      id: 'ui-blocked',
+      kicker: '07 · the boundary, on',
+      chip: 'governed run',
+      shot: 'ui-blocked-trace.png',
+      tone: 'bad',
+      narration:
+        'Boundary on, injected ticket. The first call is a customer lookup, and ArmorIQ refuses it before the tool runs. The trace shows the reason, the attempt is still reported, and the counters stay at zero. Nothing was read, nothing was exported.',
+      footnote:
+        'Same screenshot pipeline as the rest of the video: this frame is the UI after the real run, not a mock-up.',
+      callouts: [
+        ['blocked', 'The badge is the boundary’s answer: the tool never ran.', 'The badged answer is the boundary’s, and the tool never ran.'],
+        ['reason', 'Every refusal is kept with its reason — a block and a crash look different.', 'The refusal is kept, with its reason.'],
+        ['counters', 'Money moved, emails queued, records exported: all still zero.', 'And nothing moved: every counter is still zero.'],
+      ],
+    }),
+    uiScene({
+      id: 'ui-free',
+      kicker: '08 · the boundary, off',
+      chip: 'control run',
+      shot: 'ui-free-trace.png',
+      narration:
+        'Same goal, boundary off. The lookup and the ticket read go through, then the export sends six customer records to an outside address and an email is queued. The counters move. That is the control — and the reason the check has to be in the path.',
+      footnote:
+        'Identical goal, identity and code path. The only difference is whether ArmorIQ sits between the plan and the tool.',
+      callouts: [
+        ['every call', 'Lookup, tickets, export, email — all of them go straight through.', 'Every call goes straight through.'],
+        ['six records', 'The export carries every customer record to an outside address.', 'Six customer records leave the process.'],
+        ['the point', 'This is what the governed run above prevented.', 'This is the run the boundary exists to prevent.'],
+      ],
+    }),
+  ];
+}
+
+/* ── how ArmorIQ was used ───────────────────────────────────────── */
+
+function consoleScene() {
+  const panes = [
+    ['Agents', ['payflow', 'one agent per API key', 'identity resolved per user'], 'The agent the key speaks for.'],
+    ['MCP servers', ['payflow · 7 tools', 'lookup_customer … send_email', 'schemas read from the console'], 'One MCP server, the seven tools PayFlow can call.'],
+    ['Policy Studio', ['reads-allowed', 'money-under-limit', 'money-over-limit', 'destructive-denied'], 'The rule set every call is measured against.'],
+  ];
+
+  const shell = (step) => `
+    <div class="console">
+      <div class="consolebar">
+        <b>tools.armoriq.ai</b><span class="sep">/</span><span>workspace</span>
+        <span class="sep">·</span><span>agent ${'payflow'}</span>
+        <span class="sep">·</span><span>MCP ${'payflow'}</span>
+        <span class="sep">·</span><span>policy studio</span>
+      </div>
+      <div class="cg">
+        ${panes
+          .map(
+            ([h, rows], i) => `
+          <div class="pane" style="${i < step ? '' : 'opacity:.18'}">
+            <div class="ph">${h}</div>
+            ${rows.map((r, j) => `<div class="row ${j === 0 ? '' : 'sub'}">${esc(r)}</div>`).join('')}
+          </div>`,
+          )
+          .join('')}
+      </div>
+    </div>`;
+
+  return {
+    id: 'console',
+    kicker: '11 · the console',
+    chip: 'ArmorIQ',
+    narration:
+      'ArmorIQ’s console is where this agent, its MCP server and the rules are registered. The SDK bootstraps from it, asks it to sign each plan, and asks it to decide each call. PayFlow executes only between those two answers.',
+    tail: 1.1,
+    footnote:
+      'Console pages: Agents · MCP Servers · Policy Studio — the objects the SDK boots against before any tool call.',
+    steps: [1, 2, 3].map((s) => ({ html: shell(s) })),
+  };
+}
+
+function policyScene() {
+  const rules = [
+    ['reads-allowed', 'lookup_customer, list_recent_orders, read_support_tickets', 'allow'],
+    ['money-under-limit', 'refund_order, issue_store_credit — amount ≤ 500', 'allow'],
+    ['money-over-limit', 'refund_order, issue_store_credit — amount > 500', 'hold'],
+    ['destructive-denied', 'export_customer_data, send_email', 'block'],
+  ];
+
+  const table = (step) => `
+    <table class="rules">
+      <thead><tr><th>rule</th><th>applies to</th><th>effect</th></tr></thead>
+      <tbody>
+        ${rules
+          .map(
+            ([name, tools, eff], i) => `
+          <tr style="${i < step ? '' : 'opacity:.14'}">
+            <td>${name}</td>
+            <td class="tools">${tools}</td>
+            <td><span class="eff ${eff}">${eff}</span></td>
+          </tr>`,
+          )
+          .join('')}
+      </tbody>
+    </table>`;
+
+  const note = `
+    <div class="consolebar" style="border-color:rgba(251,191,36,.35); color:#e6d3a8">
+      <span class="y" style="color:var(--amber)">note</span>
+      <span class="sep">·</span>
+      <span>recorded on a workspace whose policy set was not yet attached: the check failed closed at step 1</span>
+      <span class="sep">·</span>
+      <span style="color:var(--dimmer)">agent_unresolved — nothing executed</span>
+    </div>`;
+
+  const shell = (step) => `
+    <div class="console">
+      <div class="consolebar">
+        <b>Policy Studio</b><span class="sep">·</span><span>4 rules</span>
+        <span class="sep">·</span><span>scoped to MCP payflow</span>
+        <span class="sep">·</span><span>threshold rules read <b>amount</b></span>
+      </div>
+      ${table(step)}
+      ${step >= 5 ? note : ''}
+    </div>`;
+
+  return {
+    id: 'policy',
+    kicker: '12 · the rules',
+    chip: 'Policy Studio',
+    narration:
+      'This is the rule set PayFlow is built against. Reads are allowed. Money under five hundred dollars is allowed. Above it the call is held for a human. Export and email are blocked outright. The threshold rule reads the amount, not the tool name — so a four thousand dollar credit cannot arrive as routine.',
+    tail: 1.2,
+    footnote:
+      'These four rules are the set to create in Policy Studio. This recording’s staging workspace had no policy set attached, so its governed run refuses at the first check instead of reaching the export. The rules ship in submission/POLICY-STUDIO.md.',
+    steps: [1, 2, 3, 4, 5].map((s) => ({ html: shell(s) })),
+  };
+}
+
+function takeawaysScene() {
+  const cards = [
+    ['outside', 'Put the boundary outside the model', 'The injection arrived as data the agent had to read. No prompt fixes that.'],
+    ['recorded', 'Record the refusal', 'A blocked call that is not reported looks exactly like a crash.'],
+    ['control', 'Ship the control run', 'The same agent with nothing checking it is what makes the boundary legible.'],
+  ];
+
+  const shell = (step) => `
+    <div class="takeaways">
+      <div class="tks">
+        ${cards
+          .map(
+            ([n, head, body], i) => `
+          <div class="tk" style="${i < step ? '' : 'opacity:.16'}">
+            <div class="n">0${i + 1}</div>
+            <b>${head}</b>
+            <p>${body}</p>
+          </div>`,
+          )
+          .join('')}
+      </div>
+      ${step >= 3 ? '<div class="consolebar" style="border-color:rgba(52,211,153,.3)"><span style="color:var(--green)">next</span><span class="sep">·</span><span>per-tool budgets · approval routing in Slack · replaying a refused plan against a tightened scope</span></div>' : ''}
+    </div>`;
+
+  return {
+    id: 'takeaways',
+    kicker: '14 · takeaways',
+    chip: 'what we learned',
+    narration:
+      'Three things. The boundary has to sit outside the model, because the injection arrives as data. A refusal has to be recorded, or a block and a crash look the same. And the control run is what makes the boundary legible. Next: per-tool budgets, approvals in Slack, and replaying a refused plan against a tighter scope.',
+    tail: 1.4,
     steps: [1, 2, 3].map((s) => ({ html: shell(s) })),
   };
 }
@@ -488,7 +768,7 @@ function closeScene() {
 
   return {
     id: 'close',
-    kicker: '08 · the repo',
+    kicker: '15 · the repo',
     narration:
       'The code, the policies and this demo are in the repository. PayFlow — the boundary that holds.',
     tail: 0.8,
@@ -504,12 +784,17 @@ export function buildScenes(captures) {
   return [
     titleScene(env),
     ticketScene(),
+    audienceScene(),
     problemScene(),
     toolsScene(),
     codeScene(),
-    ...ungovernedScenes(runs.ungoverned),
+    ...productScenes(),
+    ...ungovernedScenes(runs.ungoverned).slice(-1),
     denyScene(runs.deny),
+    consoleScene(),
+    policyScene(),
     testsScene(runs.tests),
+    takeawaysScene(),
     closeScene(),
   ].map((s, i) => ({ ...s, index: i, chip: s.chip ?? 'governed by ArmorIQ' }));
 }

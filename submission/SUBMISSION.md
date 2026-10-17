@@ -72,10 +72,19 @@ https://github.com/venkatanarayana15/flow-state
 ## 4. Video Link
 
 The video is rendered and committed: [`PayFlow-demo.mp4`](PayFlow-demo.mp4) —
-1920×1080, 30 fps, H.264 + AAC, **2:21**, narrated, 6.3 MB. Ten scenes: the
-injected ticket, the problem, the seven tools, the four-move loop, the
-ungoverned export (real stdout), the governed refusal (real stdout), the
-46-test suite, the repo.
+1920×1080, 30 fps, H.264 + AAC, **4:19**, 11.4 MB, narrated, captions burned
+in. Sixteen scenes: the injected ticket, who it is for, the problem, the seven
+tools, the four-move loop, the **light UI running a governed refusal and the
+ungoverned export**, the raw stdout of both runs, the ArmorIQ console, the four
+Policy Studio rules, the 46-test suite, takeaways, repo.
+
+| The organizer asked for | Where it is in the cut |
+|---|---|
+| The problem, and who it is for | 0:07–1:03 |
+| The product working end to end | 1:34–2:23 |
+| The ArmorIQ console, and how it was used | 2:57–3:14 |
+| Rules in Policy Studio, and what they decide | 3:14–3:34 |
+| Takeaways and what we would build next | 3:49–4:11 |
 
 **⚠ one step needs you:** upload that file to YouTube as **unlisted** and paste
 the URL here.
@@ -87,18 +96,21 @@ the URL here.
 Rebuild or regenerate it with:
 
 ```bash
+PORT=3000 npm start &                       # the UI the shots are taken from
+node submission/video/ui-shots.mjs          # drive + verify the UI, screenshot
 node submission/video/capture.mjs --force   # re-run the beats + tests
 node submission/video/render.mjs            # narrate, paint, encode
 ```
 
 Two properties of this cut, stated plainly rather than buried:
 
-- The governed scene shows the check refusing the **first** call
-  (`agent_unresolved`), because the staging workspace has no agent identity or
-  policy set registered. The frame says so in a footnote; the narration claims
-  only what the capture contains — refused before execution, nothing moved.
-  After the account work in [`README.md`](README.md) §0, re-run the two
-  commands and the same scene records the refusal at the export.
+- The governed scenes show the check refusing the **first** call
+  (`agent_unresolved`), because the staging workspace has no MCP server or
+  policy set attached. The frame, and the Policy Studio scene, say so on
+  screen; the narration claims only what the capture contains — refused before
+  execution, nothing moved. After the account work in [`README.md`](README.md)
+  §0 and [`POLICY-STUDIO.md`](POLICY-STUDIO.md), re-run the commands above and
+  the same scene records the refusal at the export.
 - The voice is synthesized, not a human recording.
 
 [`../VIDEO_SCRIPT.md`](../VIDEO_SCRIPT.md) remains as the shot list for a
@@ -174,13 +186,17 @@ The listing says the project should show three things. Where each is answered:
 
 ## Before you hit submit
 
+- [ ] ArmorTools Pro active on the submitting account (code `FLOWSTATEPRO`)
 - [ ] `node check-setup.js` exits 0 (see the account blockers below)
+- [ ] The four rules in [`POLICY-STUDIO.md`](POLICY-STUDIO.md) exist in Policy Studio
 - [ ] `npm run beats` shows allow → completed, hold → held, deny → blocked
 - [ ] Repo is public and the pushed commit contains `submission/`
 - [ ] `git ls-files | grep -c '^\.env$'` prints 0 — no secrets in the repo
 - [ ] Live URL opens and `/api/health` returns `ok: true`
-- [ ] Video uploaded to YouTube, unlisted, audio audible (`PayFlow-demo.mp4`, 2:21)
+- [ ] Video uploaded to YouTube, unlisted, audio audible (`PayFlow-demo.mp4`, 4:19)
 - [ ] `links.json` has the live and video URLs, and the deck/PDF are rebuilt
+- [ ] Posted on X tagging `@ArmorIQForDevs` or LinkedIn tagging ArmorIQ, with
+      `#FlowStateHackathon`
 
 ## Account state as of the last check
 
@@ -189,10 +205,11 @@ governed call path runs end to end, but the account is missing two things, both
 createable in the ArmorIQ console in a few minutes:
 
 1. agent `payflow` is not registered — only `opencode` exists
-2. no MCP server, so **no policies**, so every governed call returns
-   `no_active_policy` (correct fail-closed behaviour, but beat 1 would show
-   BLOCKED instead of ALLOWED)
+2. no MCP server, so **no policies**, so every governed call is refused at the
+   first `check` with `agent_unresolved` (correct fail-closed behaviour, but
+   beat 1 would show BLOCKED instead of ALLOWED)
 
+The exact rule set to create is in [`POLICY-STUDIO.md`](POLICY-STUDIO.md).
 Create those, then `npm run beats` produces all five verdicts as written.
 
 ### Beat 4 and the single-email problem

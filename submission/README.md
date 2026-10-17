@@ -8,8 +8,10 @@ Everything the Flow State submission asks for, in the order to do it.
 | Presentation file (PDF) | Ready | [`PayFlow-FlowState-Deck.pdf`](PayFlow-FlowState-Deck.pdf) |
 | Pitch deck (.pptx) | Ready | [`PayFlow-FlowState-Deck.pptx`](PayFlow-FlowState-Deck.pptx) |
 | Form answers (all 8 fields) | Ready | [`SUBMISSION.md`](SUBMISSION.md) |
-| Demo video (file) | **Rendered** — upload to YouTube, then paste the URL | [`PayFlow-demo.mp4`](PayFlow-demo.mp4) |
+| Demo video (file) | **Rendered — 4:19** — upload to YouTube, then paste the URL | [`PayFlow-demo.mp4`](PayFlow-demo.mp4) |
 | Live deployment | **Needs a host account** — blueprint ready | [`../render.yaml`](../render.yaml) |
+| ArmorTools Pro | **Needs your signup** — required for judging | [tools.armoriq.ai](https://tools.armoriq.ai) · code `FLOWSTATEPRO` |
+| Policy Studio rules | **Needs your console** — exact set ready | [`POLICY-STUDIO.md`](POLICY-STUDIO.md) |
 
 The deck is generated, not hand-edited. Change [`links.json`](links.json), then:
 
@@ -129,14 +131,18 @@ If it returns `"completed"`, the policy set is wrong — fix it before submittin
 ## 3. Video
 
 Rendered: [`PayFlow-demo.mp4`](PayFlow-demo.mp4) — 1920×1080, 30 fps, H.264 +
-AAC, **2:21**, 6.3 MB, narrated. Ten scenes: the injected ticket, the problem,
-the seven tools, the four-move loop, the ungoverned export (real stdout), the
-governed refusal (real stdout), the 46-test suite, the repo.
+AAC, **4:19**, 11.4 MB, narrated, captions burned in. Sixteen scenes: the
+injected ticket, who it is for, the problem, the seven tools, the four-move
+loop, the **light UI running a governed refusal and the ungoverned export**,
+the raw stdout of both runs, the ArmorIQ console, the four Policy Studio rules,
+the 46-test suite, takeaways, repo.
 
 It is generated, not edited — [`video/README.md`](video/README.md) documents the
-pipeline and the rules that keep it honest:
+pipeline and the rules that keep it honest. Rebuild after any change:
 
 ```bash
+PORT=3000 npm start &                       # the UI the shots are taken from
+node submission/video/ui-shots.mjs          # drive + verify the UI, screenshot
 node submission/video/capture.mjs --force   # re-run the beats + tests
 node submission/video/render.mjs            # narrate, paint, encode
 ```
@@ -147,15 +153,15 @@ node submission/video/render.mjs            # narrate, paint, encode
 
 Two things about the shipped cut, so nobody is surprised by them on camera:
 
-- The governed scene shows the check refusing the **first** call
-  (`agent_unresolved`), because this staging workspace has no agent or policy
-  set registered yet. The frame footnote says exactly that. The narration only
-  claims what the capture contains: the refusal happened before the tool ran
-  and nothing moved. Once §0 is fixed, re-run the two commands above and the
-  same scene records the refusal at the export instead.
-- Narration is synthesized, not a human voice. If the rules require a recorded
-  walkthrough of your own, [`../VIDEO_SCRIPT.md`](../VIDEO_SCRIPT.md) is still
-the shot list for it.
+- The governed scenes show the check refusing the **first** call
+  (`agent_unresolved`), because this staging workspace has no MCP server or
+  policy set attached. The frame footnote says exactly that, and the Policy
+  Studio scene carries the same note. The narration only claims what the
+  capture contains: the refusal happened before the tool ran and nothing moved.
+  Fix §0 + [`POLICY-STUDIO.md`](POLICY-STUDIO.md), re-run the commands above,
+  and the same scene records the refusal at the export instead.
+- Narration is synthesized, not a human voice. [`../VIDEO_SCRIPT.md`](../VIDEO_SCRIPT.md)
+  is the chapter list if you want to re-record it in your own voice.
 
 ---
 
@@ -167,7 +173,9 @@ the shot list for it.
 - [ ] `npm test` — 46 passing *(passes today)*
 - [ ] All five beats match their expected outcomes *(needs the policy set)*
 - [ ] Live URL returns `blocked` for the injected ticket *(needs the host)*
-- [x] Demo video rendered — 2:21, 1920×1080, narrated (`PayFlow-demo.mp4`)
+- [x] Demo video rendered — 4:19, 1920×1080, narrated (`PayFlow-demo.mp4`)
+- [ ] ArmorTools Pro active on the submitting account (`FLOWSTATEPRO`)
+- [ ] Policy Studio set created, `node check-setup.js` all OK
 - [ ] Video uploaded to YouTube, unlisted — then URL into `links.json`
 - [ ] `links.json` has the live and video URLs, then rebuild deck + PDF
 - [ ] Keys rotated after submission

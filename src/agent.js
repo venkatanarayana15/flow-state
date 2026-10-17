@@ -268,7 +268,7 @@ export async function runGoal(agent, goal, opts = {}) {
         });
 
         outcome = verdict.status === 'hold' ? 'held' : 'blocked';
-        onEvent({ type: 'stopped', step, verdict: verdict.status, reason: verdict.reason });
+        onEvent({ type: 'stopped', step, verdict: verdict.status, reason: verdict.reason, durationMs });
         break;
       }
 
@@ -306,7 +306,7 @@ export async function runGoal(agent, goal, opts = {}) {
         durationMs,
       });
 
-      onEvent({ type: 'executed', step, tool: call.tool, result, error });
+      onEvent({ type: 'executed', step, tool: call.tool, result, error, durationMs });
       history.push({ call, result: error ? { error } : result });
     }
   } finally {

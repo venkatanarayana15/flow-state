@@ -206,6 +206,105 @@
   .s-yellow { color: var(--amber); } .s-magenta { color: var(--magenta); } .s-grey { color: #7d8598; }
   .s-dim { opacity: .72; } .s-bold { font-weight: 700; }
 
+  /* ── real UI screenshots ─────────────────────────────────── */
+  .uiwrap { display: grid; grid-template-columns: 1131px minmax(0, 1fr); gap: 36px; align-items: start; }
+  .browser {
+    border: 1px solid #2b303d; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 26px 70px rgba(0, 0, 0, .55);
+  }
+  .chrome {
+    height: 34px; display: flex; align-items: center; gap: 7px;
+    padding: 0 14px; background: #F1F1EE; border-bottom: 1px solid #E1E1DA;
+  }
+  .chrome i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+  .chrome .c1 { background: #FF5F57; } .chrome .c2 { background: #FEBC2E; } .chrome .c3 { background: #28C840; }
+  .chrome .url {
+    margin-left: 10px; font-family: var(--mono); font-size: 12px; color: #6A6F7A;
+    background: #fff; border: 1px solid #E1E1DA; border-radius: 5px; padding: 2px 12px;
+  }
+  .browser img { display: block; width: 1131px; height: 760px; object-fit: cover; object-position: top left; }
+
+  .callouts { display: flex; flex-direction: column; gap: 16px; padding-top: 10px; }
+  .callout {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan); border-radius: 10px; padding: 15px 18px;
+  }
+  .callout .ck {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--cyan);
+  }
+  .callout .ct { font-size: 20px; line-height: 1.42; color: #d9dfeb; margin-top: 6px; }
+  .callout.hold { border-left-color: var(--amber); } .callout.hold .ck { color: var(--amber); }
+  .callout.bad { border-left-color: var(--red); } .callout.bad .ck { color: var(--red); }
+
+  /* ── audience ───────────────────────────────────────────── */
+  .audience { display: grid; grid-template-columns: 1fr .92fr; gap: 46px; align-items: center; }
+  .audience h2 { font-size: 52px; line-height: 1.08; letter-spacing: -.03em; font-weight: 650; margin-bottom: 16px; }
+  .audience h2 em { font-style: normal; color: var(--cyan); }
+  .audience .sub { font-size: 22px; line-height: 1.45; color: #aeb6c6; max-width: 40ch; }
+  .roles { display: flex; flex-direction: column; gap: 16px; }
+  .role { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; }
+  .role b { font-size: 23px; font-weight: 600; display: block; }
+  .role p { font-size: 16.5px; line-height: 1.4; color: var(--dim); margin-top: 3px; }
+
+  /* ── console schematic ───────────────────────────────────── */
+  .console { display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+  .consolebar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 15px; color: var(--dim);
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 11px 16px;
+  }
+  .consolebar b { color: var(--cyan); font-weight: 600; }
+  .consolebar .sep { color: var(--dimmer); }
+  .cg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; flex: 1; min-height: 0; }
+  .pane {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; min-height: 0;
+  }
+  .pane .ph {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--dimmer); border-bottom: 1px solid var(--border); padding-bottom: 9px; margin-bottom: 4px;
+  }
+  .pane .row { font-family: var(--mono); font-size: 16px; line-height: 1.5; color: #dfe4ee; }
+  .pane .row.sub { color: var(--dim); font-size: 14px; }
+  .pane .row .g { color: var(--green); } .pane .row .y { color: var(--amber); }
+
+  /* ── policy table ────────────────────────────────────────── */
+  .rules { width: 100%; border-collapse: separate; border-spacing: 0 7px; }
+  .rules th {
+    text-align: left; font-family: var(--mono); font-size: 12.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--dimmer); padding: 0 16px 4px; font-weight: 400;
+  }
+  .rules td {
+    background: var(--panel); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    padding: 14px 16px; font-size: 19px; color: #d5dbe7; vertical-align: middle;
+  }
+  .rules tr td:first-child {
+    border-left: 1px solid var(--border); border-radius: 10px 0 0 10px;
+    font-family: var(--mono); font-size: 18px; color: #e8ecf5; white-space: nowrap;
+  }
+  .rules tr td:last-child { border-right: 1px solid var(--border); border-radius: 0 10px 10px 0; }
+  .rules .tools { font-family: var(--mono); font-size: 15px; color: var(--dim); line-height: 1.5; }
+  .eff {
+    font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; padding: 3px 9px; border-radius: 5px; white-space: nowrap;
+  }
+  .eff.allow { color: var(--green); background: rgba(52,211,153,.13); }
+  .eff.hold  { color: var(--amber); background: rgba(251,191,36,.13); }
+  .eff.block { color: var(--red);   background: rgba(248,113,113,.13); }
+
+  /* ── takeaways ───────────────────────────────────────────── */
+  .takeaways { display: flex; flex-direction: column; gap: 20px; min-height: 0; }
+  .tks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; flex: 1; min-height: 0; }
+  .tk {
+    background: var(--panel); border: 1px solid var(--border); border-top: 3px solid var(--cyan);
+    border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 10px; min-height: 0;
+  }
+  .tk .n { font-family: var(--mono); font-size: 13px; color: var(--cyan); }
+  .tk b { font-size: 23px; line-height: 1.24; font-weight: 600; color: #f0f3f9; }
+  .tk p { font-size: 16.5px; line-height: 1.45; color: var(--dim); }
+  .tk.next { border-top-color: var(--green); } .tk.next .n { color: var(--green); }
+
   /* ── close ──────────────────────────────────────────────── */
   .close { display: flex; flex-direction: column; justify-content: center; gap: 26px; padding-left: 20px; }
   .close .url {

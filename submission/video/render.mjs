@@ -21,6 +21,7 @@
 
 import 'dotenv/config';
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import fs from 'node:fs';
@@ -132,8 +133,11 @@ function wavDuration(file) {
 
 async function narrate(scene) {
   await fsp.mkdir(AUDIO, { recursive: true });
-  const mp3 = path.join(AUDIO, `${String(scene.index).padStart(2, '0')}-${scene.id}.mp3`);
-  const wav = path.join(BUILD, `${String(scene.index).padStart(2, '0')}-${scene.id}.wav`);
+  // Key the cache on the words, not just the scene id: editing a line of
+  // narration must not silently reuse the previous take.
+  const hash = createHash('sha1').update(`${VOICE}|${scene.narration}`).digest('hex').slice(0, 8);
+  const mp3 = path.join(AUDIO, `${String(scene.index).padStart(2, '0')}-${scene.id}-${hash}.mp3`);
+  const wav = path.join(AUDIO, `${String(scene.index).padStart(2, '0')}-${scene.id}-${hash}.wav`);
 
   if (!fs.existsSync(mp3) || !fs.existsSync(wav)) {
     await run('python', [

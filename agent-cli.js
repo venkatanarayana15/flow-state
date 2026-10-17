@@ -80,14 +80,17 @@ function printer(beat, label) {
     }
     if (ev.type === 'end') {
       console.log('');
-      console.log(`  ${C.bold}outcome:${C.reset} ${explain(ev.outcome)}`);
+      console.log(`  ${C.bold}outcome:${C.reset} ${explain(ev.outcome, beat)}`);
     }
   };
 }
 
-function explain(outcome) {
+function explain(outcome, beat) {
   if (outcome === 'blocked') return `${BADGE.deny} — refused before execution. Nothing moved.`;
   if (outcome === 'held') return `${BADGE.hold} — paused for a human. Nothing moved yet.`;
+  if (outcome === 'completed' && beat?.enforce === false) {
+    return `${BADGE.ungoverned} — completed, because nothing was checking it.`;
+  }
   if (outcome === 'completed') return `${C.green}completed${C.reset} — every call was inside the signed scope.`;
   return outcome;
 }

@@ -10,7 +10,8 @@ Built for the [ArmorIQ Flow State Hackathon](https://armoriq.ai/hackathons/flow-
 |---|---|
 | **Live demo** | `https://<app>.onrender.com` — fill in after deploying |
 | **Pitch deck** | [`submission/PayFlow-FlowState-Deck.pptx`](submission/PayFlow-FlowState-Deck.pptx) |
-| **Video** | `https://youtu.be/<id>` — fill in after uploading |
+| **Demo video** | [`submission/PayFlow-demo.mp4`](submission/PayFlow-demo.mp4) — 4:19, unlisted upload pending |
+| **Policy rules** | [`submission/POLICY-STUDIO.md`](submission/POLICY-STUDIO.md) — the four rules to create |
 | **Runbook** | [`submission/README.md`](submission/README.md) — deploy, record, submit |
 
 ---
@@ -157,6 +158,18 @@ npm run beats          # all five
 npm start              # the web UI on :3000
 ```
 
+### The UI
+
+`npm start` serves a light-mode console at <http://localhost:3000>: write a goal,
+pick the identity, and switch the boundary on or off. Five scenarios reproduce
+the beats in one click. The trace streams over
+`POST /api/run/stream` (newline-delimited JSON) as the agent plans, so each
+verdict appears when ArmorIQ returns it rather than after the whole run. Every
+step shows its args, the matched policy, the reason, the result, and how long
+it took; a blocked step is labelled and never carries a result, because the
+tool was never called. The right-hand panel counts what actually moved — money,
+emails, records exported — from the same in-memory state a judge can inspect.
+
 When a beat holds, go to **Approvals** in the console and approve it. The agent
 is waiting. If nobody approves in time the call is refused — a timeout is a
 refusal, not an allow.
@@ -175,7 +188,7 @@ src/
   db.js                 seeded data + the injected ticket
   beats.js              the five beat definitions
   server.js             HTTP server for the live demo
-public/index.html       the demo UI
+public/index.html       the demo UI (light, streamed trace)
 ```
 
 Only `src/agent.js` is ArmorIQ. Delete it and the agent still works — it just

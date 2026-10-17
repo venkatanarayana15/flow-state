@@ -4,15 +4,16 @@
  * Exposes the agent over HTTP so the submission has a live URL a judge
  * can open and drive themselves.
  *
- *   GET  /             the demo UI
- *   POST /api/run      { goal } -> full trace
- *   GET  /api/beats    the three canned beats
- *   GET  /api/state    ledger / outbox / export log — proof of what moved
- *   GET  /api/health   key + session sanity check
+ *   GET  /                  the demo UI
+ *   POST /api/run           { goal } -> full trace, one JSON body
+ *   POST /api/run/stream    { goal } -> newline-delimited events as they happen
+ *   GET  /api/beats         the five demo scenarios
+ *   GET  /api/state         ledger / outbox / export log — proof of what moved
+ *   GET  /api/health        key + session sanity check
  *
- * The client renders a trace that arrives in one response, revealed a step
- * at a time. That keeps the demo feeling live without depending on a
- * streaming connection staying up in front of an audience.
+ * The UI uses the streaming route, so each plan and each verdict lands on
+ * screen the moment it happens instead of after the run finishes. `/api/run`
+ * stays for scripts, curl and the video capture — same loop, buffered.
  */
 
 import 'dotenv/config';
@@ -23,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { createAgent, runGoal } from './agent.js';
 import { BEATS } from './beats.js';
 import { DEMO_NOTICE, STORE } from './db.js';
-import { LEDGER, OUTBOX, EXPORT_LOG } from './tools.js';
+import { LEDGER, OUTBOX, EXPORT_LOG, TOOLS } from './tools.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -116,8 +117,10 @@ app.get('/api/health', (_req, res) => {
     userEmail: USER_EMAIL ?? null,
     userEmailLow: USER_LOW,
     model: GEMINI_MODEL,
+    backend: process.env.ARMORIQ_ENV ?? 'production',
     store: STORE.name,
     notice: DEMO_NOTICE,
+    tools: TOOLS.length,
   });
 });
 
@@ -144,7 +147,73 @@ app.get('/api/state', (_req, res) => {
     movedMoney: LEDGER.reduce((sum, e) => sum + Number(e.amount ?? 0), 0),
     emailsSent: OUTBOX.length,
     dataExported: EXPORT_LOG.length,
+    exportedRows: EXPORT_LOG.reduce((sum, e) => sum + Number(e.rows ?? 0), 0),
   });
+});
+
+/** Shared validation for both run routes. Returns an error string, or null. */
+function validateRun(body) {
+  const goal = String(body?.goal ?? '').trim();
+  const enforce = body?.enforce !== false;
+  if (!goal) return 'provide a non-empty "goal"';
+  if (!GEMINI_KEY || (enforce && !API_KEY)) {
+    return 'server is missing credentials — check /api/health';
+  }
+  return null;
+}
+
+const snapshot = () => ({
+  movedMoney: LEDGER.reduce((s, e) => s + Number(e.amount ?? 0), 0),
+  emailsSent: OUTBOX.length,
+  dataExported: EXPORT_LOG.length,
+  exportedRows: EXPORT_LOG.reduce((s, e) => s + Number(e.rows ?? 0), 0),
+});
+
+app.post('/api/run/stream', rateLimitRun, async (req, res) => {
+  const problem = validateRun(req.body);
+  if (problem) return res.status(problem.startsWith('server') ? 500 : 400).json({ error: problem });
+
+  const goal = String(req.body.goal).trim();
+  const asUser = String(req.body?.as ?? 'user').toLowerCase();
+  const enforce = req.body?.enforce !== false;
+  const userEmail = asUser === 'userlow' ? USER_LOW : USER_EMAIL;
+
+  res.status(200);
+  res.set({
+    'Content-Type': 'application/x-ndjson; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    'X-Accel-Buffering': 'no', // Render/nginx must not buffer the trace
+  });
+  res.flushHeaders?.();
+
+  // Listen on the *response*: an incoming request emits 'close' as soon as
+  // its body has been read, which would silence the whole trace.
+  let open = true;
+  res.on('close', () => { open = false; });
+  const send = (event) => {
+    if (!open || res.writableEnded) return;
+    res.write(`${JSON.stringify(event)}\n`);
+  };
+
+  try {
+    const agent = await getAgent(enforce);
+    send({ type: 'start', enforce, as: userEmail, agentName: AGENT_NAME, mcpName: MCP_NAME });
+
+    const run = await runGoal(agent, goal, {
+      geminiKey: GEMINI_KEY,
+      geminiModel: GEMINI_MODEL,
+      userEmail,
+      onEvent: send,
+    });
+
+    send({ type: 'done', outcome: run.outcome, trace: run.trace, state: snapshot(), as: userEmail, enforce });
+  } catch (err) {
+    console.error('[payflow] stream failed:', err);
+    send({ type: 'error', error: err.message });
+  } finally {
+    open = false;
+    res.end();
+  }
 });
 
 app.post('/api/run', rateLimitRun, async (req, res) => {
@@ -170,17 +239,7 @@ app.post('/api/run', rateLimitRun, async (req, res) => {
       userEmail,
     });
 
-    res.json({
-      ...run,
-      enforce,
-      as: userEmail,
-      notice: DEMO_NOTICE,
-      state: {
-        movedMoney: LEDGER.reduce((s, e) => s + Number(e.amount ?? 0), 0),
-        emailsSent: OUTBOX.length,
-        dataExported: EXPORT_LOG.length,
-      },
-    });
+    res.json({ ...run, enforce, as: userEmail, notice: DEMO_NOTICE, state: snapshot() });
   } catch (err) {
     console.error('[payflow] run failed:', err);
     res.status(500).json({ error: err.message });
