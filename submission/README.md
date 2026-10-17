@@ -41,12 +41,16 @@ the org. What it stops on now is the account's contents.
    (`reads-allowed`, `money-under-limit`, `money-over-limit`,
    `destructive-denied`).
 
-4. **Two distinct identities.** `ARMORIQ_USER_EMAIL` and
-   `ARMORIQ_USER_EMAIL_LOW` currently hold the *same* address, and ArmorIQ
-   resolves policy per address — beat 4 would print two identical verdicts and
-   look like a broken demo. `check-setup.js` now fails on this, and
-   `npm run beat:users` warns. Set the second address to a real tier-1 identity
-   with a lower limit before recording.
+4. **Two distinct identities.** ArmorIQ resolves policy per address, so the two
+   must differ — the same address resolves the same policy twice and beat 4
+   prints two identical verdicts. `check-setup.js` fails on it and
+   `npm run beat:users` warns. `ARMORIQ_USER_EMAIL_LOW` is now the
+   `+tier1` alias of the primary inbox, which is resolvable without a second
+   account (staging returns `isMember: false` rather than rejecting it).
+
+   **Still to confirm:** that a non-member really gets a different verdict.
+   Run `npm run beat:users` after the policies exist — if both runs agree, drop
+   beat 4 instead of demonstrating a comparison that cannot differ.
 
 > The ungoverned beats need no ArmorIQ key, but they do need Gemini quota.
 > `gemini-3.5-flash-lite` ran out of free-tier quota during this build, so the
@@ -145,7 +149,7 @@ Post as **unlisted** YouTube and put the URL in `links.json`.
 
 - [x] Repo is public, pushed, and contains no `.env`
 - [x] Presentation PDF built from the deck (13 slides)
-- [ ] `node check-setup.js` — no FAIL lines *(3 account blockers, §0)*
+- [ ] `node check-setup.js` — no FAIL lines *(2 account blockers left, §0)*
 - [ ] `npm test` — 46 passing *(passes today)*
 - [ ] All five beats match their expected outcomes *(needs the policy set)*
 - [ ] Live URL returns `blocked` for the injected ticket *(needs the host)*

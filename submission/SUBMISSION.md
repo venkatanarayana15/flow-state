@@ -150,7 +150,7 @@ The listing says the project should show three things. Where each is answered:
 
 ## Before you hit submit
 
-- [ ] `node check-setup.js` exits 0 (see the three account blockers below)
+- [ ] `node check-setup.js` exits 0 (see the account blockers below)
 - [ ] `npm run beats` shows allow → completed, hold → held, deny → blocked
 - [ ] Repo is public and the pushed commit contains `submission/`
 - [ ] `git ls-files | grep -c '^\.env$'` prints 0 — no secrets in the repo
@@ -160,15 +160,26 @@ The listing says the project should show three things. Where each is answered:
 
 ## Account state as of the last check
 
-`node check-setup.js` → exit 1. The key now authenticates (staging backend) and
-the governed call path runs, but the account is missing three things, all
+`node check-setup.js` → exit 1. The key authenticates (staging backend) and the
+governed call path runs end to end, but the account is missing two things, both
 createable in the ArmorIQ console in a few minutes:
 
 1. agent `payflow` is not registered — only `opencode` exists
 2. no MCP server, so **no policies**, so every governed call returns
    `no_active_policy` (correct fail-closed behaviour, but beat 1 would show
    BLOCKED instead of ALLOWED)
-3. `ARMORIQ_USER_EMAIL_LOW` is the same address as `ARMORIQ_USER_EMAIL`, so
-   beat 4 would print two identical verdicts
 
-Fix those three and `npm run beats` produces all five verdicts as written.
+Create those, then `npm run beats` produces all five verdicts as written.
+
+### Beat 4 and the single-email problem
+
+The two demo identities are resolved per address, and the second one does not
+need its own account: `client.resolveUser()` on staging returns
+`isMember: false` for an unknown address instead of rejecting it. So
+`ARMORIQ_USER_EMAIL_LOW` is set to `venkatnarayana727+tier1@gmail.com` — an
+alias of the same inbox.
+
+**Unverified:** whether that non-member actually receives a different verdict
+from the admin. Run `npm run beat:users` once the policies exist. If both runs
+print the same verdict, drop beat 4 from the deck and the script rather than
+showing a comparison that cannot differ.
