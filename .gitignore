@@ -17,6 +17,10 @@ npm-debug.log*
 tmp/
 run-traces/
 
+# Video build intermediates (the .mp4 itself is committed)
+submission/video/build/
+submission/video/audio/
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db

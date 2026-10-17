@@ -71,14 +71,38 @@ https://github.com/venkatanarayana15/flow-state
 
 ## 4. Video Link
 
-**⚠ needs you.** The demo needs your voice and five live runs; see
-[`../VIDEO_SCRIPT.md`](../VIDEO_SCRIPT.md) (4:30, five beats, not slides).
-Upload as an unlisted YouTube video, then put the URL here and in
-[`links.json`](links.json).
+The video is rendered and committed: [`PayFlow-demo.mp4`](PayFlow-demo.mp4) —
+1920×1080, 30 fps, H.264 + AAC, **2:21**, narrated, 6.3 MB. Ten scenes: the
+injected ticket, the problem, the seven tools, the four-move loop, the
+ungoverned export (real stdout), the governed refusal (real stdout), the
+46-test suite, the repo.
+
+**⚠ one step needs you:** upload that file to YouTube as **unlisted** and paste
+the URL here.
 
 ```
 <paste the video URL>
 ```
+
+Rebuild or regenerate it with:
+
+```bash
+node submission/video/capture.mjs --force   # re-run the beats + tests
+node submission/video/render.mjs            # narrate, paint, encode
+```
+
+Two properties of this cut, stated plainly rather than buried:
+
+- The governed scene shows the check refusing the **first** call
+  (`agent_unresolved`), because the staging workspace has no agent identity or
+  policy set registered. The frame says so in a footnote; the narration claims
+  only what the capture contains — refused before execution, nothing moved.
+  After the account work in [`README.md`](README.md) §0, re-run the two
+  commands and the same scene records the refusal at the export.
+- The voice is synthesized, not a human recording.
+
+[`../VIDEO_SCRIPT.md`](../VIDEO_SCRIPT.md) remains as the shot list for a
+human-recorded take.
 
 ## 5. Idea Name
 
@@ -155,7 +179,7 @@ The listing says the project should show three things. Where each is answered:
 - [ ] Repo is public and the pushed commit contains `submission/`
 - [ ] `git ls-files | grep -c '^\.env$'` prints 0 — no secrets in the repo
 - [ ] Live URL opens and `/api/health` returns `ok: true`
-- [ ] Video is under 5 minutes, unlisted, and audible
+- [ ] Video uploaded to YouTube, unlisted, audio audible (`PayFlow-demo.mp4`, 2:21)
 - [ ] `links.json` has the live and video URLs, and the deck/PDF are rebuilt
 
 ## Account state as of the last check

@@ -8,8 +8,8 @@ Everything the Flow State submission asks for, in the order to do it.
 | Presentation file (PDF) | Ready | [`PayFlow-FlowState-Deck.pdf`](PayFlow-FlowState-Deck.pdf) |
 | Pitch deck (.pptx) | Ready | [`PayFlow-FlowState-Deck.pptx`](PayFlow-FlowState-Deck.pptx) |
 | Form answers (all 8 fields) | Ready | [`SUBMISSION.md`](SUBMISSION.md) |
+| Demo video (file) | **Rendered** — upload to YouTube, then paste the URL | [`PayFlow-demo.mp4`](PayFlow-demo.mp4) |
 | Live deployment | **Needs a host account** — blueprint ready | [`../render.yaml`](../render.yaml) |
-| Video link | **Needs recording** — script ready | [`../VIDEO_SCRIPT.md`](../VIDEO_SCRIPT.md) |
 
 The deck is generated, not hand-edited. Change [`links.json`](links.json), then:
 
@@ -128,20 +128,34 @@ If it returns `"completed"`, the policy set is wrong — fix it before submittin
 
 ## 3. Video
 
-Follow [`VIDEO_SCRIPT.md`](../VIDEO_SCRIPT.md). It is timed to 4:30 and built
-around five live runs, not slides.
+Rendered: [`PayFlow-demo.mp4`](PayFlow-demo.mp4) — 1920×1080, 30 fps, H.264 +
+AAC, **2:21**, 6.3 MB, narrated. Ten scenes: the injected ticket, the problem,
+the seven tools, the four-move loop, the ungoverned export (real stdout), the
+governed refusal (real stdout), the 46-test suite, the repo.
 
-Before recording:
+It is generated, not edited — [`video/README.md`](video/README.md) documents the
+pipeline and the rules that keep it honest:
 
 ```bash
-node check-setup.js     # every line OK
-npm test                # 46 passing
-npm run beats           # allow→completed, hold→held, deny→blocked,
-                        # users→split, ungoverned→exported
+node submission/video/capture.mjs --force   # re-run the beats + tests
+node submission/video/render.mjs            # narrate, paint, encode
 ```
 
-Record at 1920×1080, browser at 100% zoom, terminal font ≥ 16pt, `.env` closed.
-Post as **unlisted** YouTube and put the URL in `links.json`.
+**What is left is hosting it.** Upload `PayFlow-demo.mp4` to YouTube as
+**unlisted**, then put the URL in [`links.json`](links.json) (`video`) and in
+[`SUBMISSION.md`](SUBMISSION.md) field 4, and rebuild the deck + PDF.
+
+Two things about the shipped cut, so nobody is surprised by them on camera:
+
+- The governed scene shows the check refusing the **first** call
+  (`agent_unresolved`), because this staging workspace has no agent or policy
+  set registered yet. The frame footnote says exactly that. The narration only
+  claims what the capture contains: the refusal happened before the tool ran
+  and nothing moved. Once §0 is fixed, re-run the two commands above and the
+  same scene records the refusal at the export instead.
+- Narration is synthesized, not a human voice. If the rules require a recorded
+  walkthrough of your own, [`../VIDEO_SCRIPT.md`](../VIDEO_SCRIPT.md) is still
+the shot list for it.
 
 ---
 
@@ -153,6 +167,7 @@ Post as **unlisted** YouTube and put the URL in `links.json`.
 - [ ] `npm test` — 46 passing *(passes today)*
 - [ ] All five beats match their expected outcomes *(needs the policy set)*
 - [ ] Live URL returns `blocked` for the injected ticket *(needs the host)*
+- [x] Demo video rendered — 2:21, 1920×1080, narrated (`PayFlow-demo.mp4`)
+- [ ] Video uploaded to YouTube, unlisted — then URL into `links.json`
 - [ ] `links.json` has the live and video URLs, then rebuild deck + PDF
-- [ ] Video under 5 minutes, unlisted, audio audible
 - [ ] Keys rotated after submission

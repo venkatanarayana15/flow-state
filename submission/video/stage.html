@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>PayFlow — video stage</title>
+<style>
+  :root {
+    --bg:      #08090c;
+    --panel:   #11131a;
+    --panel-2: #161922;
+    --border:  #232733;
+    --text:    #e8eaf0;
+    --dim:     #939bad;
+    --dimmer:  #626a7d;
+    --green:   #34d399;
+    --amber:   #fbbf24;
+    --red:     #f87171;
+    --cyan:    #38bdf8;
+    --magenta: #d977f6;
+    --mono: "Cascadia Mono", Consolas, "Courier New", monospace;
+    --sans: "Segoe UI", -apple-system, BlinkMacSystemFont, Inter, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(ellipse 70% 45% at 55% -12%, rgba(56,189,248,.10), transparent),
+      radial-gradient(ellipse 50% 40% at 95% 105%, rgba(52,211,153,.06), transparent);
+  }
+
+  .frame {
+    width: 1920px; height: 1080px; padding: 52px 72px 46px;
+    display: flex; flex-direction: column; gap: 22px; position: relative;
+  }
+
+  /* ── header ─────────────────────────────────────────────── */
+  header { display: flex; justify-content: space-between; align-items: center; flex: 0 0 auto; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo { font-size: 27px; font-weight: 700; letter-spacing: -.02em; }
+  .logo em { font-style: normal; color: var(--cyan); }
+  .chip {
+    font-family: var(--mono); font-size: 13px; color: var(--dim);
+    border: 1px solid var(--border); background: rgba(255,255,255,.02);
+    padding: 4px 11px; border-radius: 999px; letter-spacing: .02em;
+  }
+  .kicker {
+    font-family: var(--mono); font-size: 13px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--dimmer);
+  }
+
+  /* ── content ────────────────────────────────────────────── */
+  main { flex: 1 1 auto; min-height: 0; display: flex; }
+  main > * { flex: 1 1 auto; min-width: 0; min-height: 0; }
+
+  /* caption + footnote */
+  .caption {
+    flex: 0 0 auto; font-size: 30px; line-height: 1.42; color: #ced4e2;
+    letter-spacing: -.005em; max-width: 1760px; min-height: 43px;
+  }
+  .footnote {
+    flex: 0 0 auto; font-family: var(--mono); font-size: 15px; line-height: 1.5;
+    color: var(--dimmer); min-height: 22px;
+  }
+
+  .bar { position: absolute; left: 0; bottom: 0; width: 100%; height: 4px; background: #101218; }
+  .bar i { display: block; height: 100%; width: 0;
+    background: linear-gradient(90deg, #38bdf8, #34d399); }
+
+  /* ── title ──────────────────────────────────────────────── */
+  .title { display: flex; flex-direction: column; justify-content: center; gap: 20px; padding-left: 26px; }
+  .title h1 { font-size: 148px; font-weight: 700; letter-spacing: -.045em; line-height: .95; }
+  .title h1 em { font-style: normal; color: var(--cyan); }
+  .title .sub { font-size: 48px; color: #b9c1d3; letter-spacing: -.02em; }
+  .title .meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  .title .meta span {
+    font-family: var(--mono); font-size: 17px; color: var(--dim);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px;
+    background: rgba(255,255,255,.02);
+  }
+  .title .meta span.hi { color: var(--cyan); border-color: rgba(56,189,248,.35); background: rgba(56,189,248,.07); }
+
+  /* ── mail ───────────────────────────────────────────────── */
+  .mailwrap { display: grid; grid-template-columns: 1.28fr 1fr; gap: 40px; min-height: 0; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 26px 30px; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .panel .k { font-family: var(--mono); font-size: 13px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--dimmer); margin-bottom: 6px; }
+  .mailhead { font-family: var(--mono); font-size: 17px; line-height: 1.75; color: var(--dim);
+    border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 16px; }
+  .mailhead b { color: #cbd2e0; font-weight: 600; }
+  .mailbody { font-family: var(--mono); font-size: 22px; line-height: 1.55; white-space: pre-wrap;
+    color: #d8dde8; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  .mailbody .inj { color: #ffd899; }
+  .mailbody .hot { background: rgba(251,191,36,.10); box-shadow: inset 2px 0 0 var(--amber);
+    display: inline-block; padding-left: 10px; margin-left: -10px; border-radius: 2px; }
+  .notes { display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+  .note {
+    display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-left: 3px solid var(--amber); border-radius: 10px;
+  }
+  .note .num { font-family: var(--mono); font-size: 14px; color: var(--amber); padding-top: 3px; }
+  .note .tx { font-size: 21px; line-height: 1.45; color: #d3d9e6; }
+  .note .tx b { color: #fff; font-weight: 600; }
+  .verdictline {
+    margin-top: 6px; font-family: var(--mono); font-size: 17px; color: var(--red);
+    border-top: 1px solid var(--border); padding-top: 14px;
+  }
+
+  /* ── problem ────────────────────────────────────────────── */
+  .problem { display: grid; grid-template-columns: 1fr .92fr; gap: 52px; align-items: center; }
+  .quote {
+    background: var(--panel); border: 1px solid var(--border);
+    border-left: 3px solid var(--amber); border-radius: 12px;
+    padding: 30px 32px; font-family: var(--mono); font-size: 23px;
+    line-height: 1.62; color: #e6d9bd;
+  }
+  .quote .src {
+    display: block; margin-top: 18px; font-family: var(--sans); font-size: 16px;
+    color: var(--dimmer); letter-spacing: .04em;
+  }
+  .principles { display: flex; flex-direction: column; gap: 22px; }
+  .pr { display: flex; gap: 18px; align-items: flex-start; padding-left: 4px; }
+  .pr .n {
+    font-family: var(--mono); font-size: 14px; color: var(--cyan);
+    border: 1px solid rgba(56,189,248,.35); background: rgba(56,189,248,.07);
+    border-radius: 6px; padding: 3px 8px; flex: 0 0 auto;
+  }
+  .pr .tx { font-size: 29px; line-height: 1.32; color: #dfe4ee; letter-spacing: -.012em; }
+  .pr .tx b { color: #fff; font-weight: 600; }
+  .pr.off { opacity: .16; }
+
+  /* ── tools ──────────────────────────────────────────────── */
+  .tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; min-height: 0; }
+  .tgroup { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .tgroup h3 {
+    font-family: var(--mono); font-size: 14px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--dimmer); display: flex; gap: 10px; align-items: center;
+  }
+  .tgroup h3 i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .tgroup.reads h3 i { background: var(--green); }
+  .tgroup.money h3 i { background: var(--amber); }
+  .tgroup.egress h3 i { background: var(--red); }
+  .tool {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 22px; display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto;
+  }
+  .tool code { font-family: var(--mono); font-size: 22px; color: #e9edf6; letter-spacing: -.01em; }
+  .tool p { font-size: 17px; line-height: 1.4; color: var(--dim); }
+  .tool .tag { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+  .reads .tool { border-left: 3px solid rgba(52,211,153,.55); }
+  .money .tool { border-left: 3px solid rgba(251,191,36,.55); }
+  .egress .tool { border-left: 3px solid rgba(248,113,113,.7); }
+  .tfoot { margin-top: auto; font-family: var(--mono); font-size: 16px; color: var(--dimmer);
+    border-top: 1px solid var(--border); padding-top: 14px; }
+
+  /* ── code ───────────────────────────────────────────────── */
+  .code { display: flex; flex-direction: column; min-height: 0; padding: 0; overflow: hidden; }
+  .codebody { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+    justify-content: center; gap: 10px; padding: 10px 0; }
+  .moveline {
+    display: grid; grid-template-columns: 150px 1fr; gap: 24px; align-items: baseline;
+    padding: 10px 26px; border-left: 3px solid transparent;
+  }
+  .moveline .m { font-family: var(--mono); font-size: 14px; letter-spacing: .12em; text-transform: uppercase; }
+  .moveline .c { font-family: var(--mono); font-size: 24px; color: #dfe4ee; white-space: pre-wrap; }
+  .moveline .c b { color: var(--cyan); font-weight: 600; }
+  .moveline .c i { color: var(--dimmer); font-style: normal; }
+  .m1 { border-left-color: rgba(56,189,248,.6); } .m1 .m { color: var(--cyan); }
+  .m2 { border-left-color: rgba(251,191,36,.7); } .m2 .m { color: var(--amber); }
+  .m3 { border-left-color: rgba(52,211,153,.7); } .m3 .m { color: var(--green); }
+  .m4 { border-left-color: rgba(217,119,246,.6); } .m4 .m { color: var(--magenta); }
+  .moveline.off { opacity: .18; }
+  .codefoot { flex: 0 0 auto; border-top: 1px solid var(--border); padding: 14px 26px;
+    font-family: var(--mono); font-size: 17px; color: var(--dim); }
+
+  /* ── terminal ───────────────────────────────────────────── */
+  .term { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .termbar {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 9px;
+    padding: 13px 20px; border-bottom: 1px solid var(--border); background: #0e1016;
+  }
+  .termbar .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .termbar .d1 { background: #ff5f57; } .termbar .d2 { background: #febc2e; } .termbar .d3 { background: #28c840; }
+  .termbar .cmd { margin-left: 12px; font-family: var(--mono); font-size: 17px; color: var(--dim); }
+  /* The pre, not the flex parent, is the bounded box: height 100% + overflow
+     hidden makes scrollHeight report the true content height, which is what
+     the fit check measures. Without an explicit height the pre simply grows
+     past the panel and the overflow is invisible to the check. */
+  .termbody { flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 20px 26px; }
+  .termbody pre {
+    font-family: var(--mono); font-size: 20px; line-height: 1.38; white-space: pre-wrap;
+    overflow-wrap: anywhere; color: #d6dbe6; margin: 0; height: 100%; overflow: hidden;
+  }
+  .termbody pre div { padding: 1px 8px; border-left: 3px solid transparent; margin-left: -8px; }
+  .termbody pre div.hl-block { background: rgba(248,113,113,.10); border-left-color: var(--red); border-radius: 3px; }
+  .termbody pre div.hl-warn { background: rgba(251,191,36,.10); border-left-color: var(--amber); border-radius: 3px; }
+  .termbody pre div.hl-export { background: rgba(217,119,246,.12); border-left-color: var(--magenta); border-radius: 3px; }
+  .s-cyan { color: var(--cyan); } .s-green { color: var(--green); } .s-red { color: var(--red); }
+  .s-yellow { color: var(--amber); } .s-magenta { color: var(--magenta); } .s-grey { color: #7d8598; }
+  .s-dim { opacity: .72; } .s-bold { font-weight: 700; }
+
+  /* ── close ──────────────────────────────────────────────── */
+  .close { display: flex; flex-direction: column; justify-content: center; gap: 26px; padding-left: 20px; }
+  .close .url {
+    font-family: var(--mono); font-size: 54px; color: var(--cyan); letter-spacing: -.02em;
+  }
+  .close .row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 46px; max-width: 1500px; }
+  .close .item { display: flex; gap: 14px; font-size: 22px; color: #c6cddc; align-items: baseline; }
+  .close .item b { font-family: var(--mono); font-size: 18px; color: var(--dimmer); min-width: 240px; }
+  .close .sig { font-size: 27px; color: var(--dim); margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <header>
+    <div class="brand">
+      <div class="logo">Pay<em>Flow</em></div>
+      <div class="chip" id="chip">governed by ArmorIQ</div>
+    </div>
+    <div class="kicker" id="kicker"></div>
+  </header>
+  <main id="content"></main>
+  <div class="caption" id="caption"></div>
+  <div class="footnote" id="footnote"></div>
+  <div class="bar"><i id="bar"></i></div>
+</div>
+
+<script>
+  /**
+   * Shrink an element's font until its content fits its own box.
+   *
+   * This is the only layout guarantee the video has: I cannot look at the
+   * frames, so every frame is measured after it is painted. If text would
+   * overflow its panel it is scaled down until it does not, and `paint()`
+   * returns the final size so the renderer can log anything that had to be
+   * scaled hard.
+   */
+  function overflows(el) {
+    return el.scrollHeight - el.clientHeight > 2 || el.scrollWidth - el.clientWidth > 2;
+  }
+
+  function fit(el, minPx) {
+    const start = parseFloat(getComputedStyle(el).fontSize);
+    let size = start;
+    let guard = 0;
+    while (overflows(el) && size > minPx && guard++ < 80) {
+      size -= 1;
+      el.style.fontSize = size + 'px';
+    }
+    return { start, end: size, overflow: overflows(el) };
+  }
+
+  window.paint = (payload) => {
+    document.getElementById('kicker').textContent = payload.kicker || '';
+    document.getElementById('chip').textContent = payload.chip || 'governed by ArmorIQ';
+    document.getElementById('content').innerHTML = payload.html;
+    document.getElementById('caption').textContent = payload.caption || '';
+    document.getElementById('footnote').textContent = payload.footnote || '';
+    document.getElementById('bar').style.width = ((payload.progress ?? 0) * 100).toFixed(2) + '%';
+
+    const report = {};
+    // A scene locks its text to the size the *fullest* frame needs, so type
+    // does not visibly reflow as lines arrive.
+    if (payload.lock) {
+      document.querySelectorAll('[data-fit]').forEach((el) => {
+        const size = payload.lock[el.dataset.fit];
+        if (size) el.style.fontSize = size + 'px';
+      });
+    }
+    document.querySelectorAll('[data-fit]').forEach((el) => {
+      report[el.dataset.fit] = fit(el, Number(el.dataset.fitMin || 13));
+    });
+    // Whole-frame overflow: nothing may extend past 1920x1080.
+    report.frame = {
+      w: document.documentElement.scrollWidth,
+      h: document.documentElement.scrollHeight,
+    };
+    return report;
+  };
+</script>
+</body>
+</html>
