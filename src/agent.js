@@ -112,7 +112,10 @@ export async function createAgent({
     apiKey,
     userId: userEmail,
     agentId: agentName,
-    // ak_live_ keys target the production backend; ak_test_ the sandbox.
+    // The prefix is a format check, not a routing decision: a staging key can
+    // also start with ak_live_. ARMORIQ_ENV is what actually picks the backend
+    // (production / staging / local), and the SDK ignores this flag whenever
+    // that variable is set. Only the legacy local mode falls back to it.
     useProduction: String(apiKey).startsWith('ak_live_'),
   });
 
@@ -126,7 +129,10 @@ export async function createAgent({
     if (/401|unauthor|invalid or expired/i.test(err.message ?? '')) {
       throw new Error(
         'ArmorIQ rejected the API key (401).\n' +
-        '  → Generate a new one: platform.armoriq.ai → Settings → API Keys\n' +
+        '  → If the key is fresh, it may belong to the other backend. A staging\n' +
+        '    key can still start with ak_live_. Try ARMORIQ_ENV=staging (or\n' +
+        '    production) before generating a replacement.\n' +
+        '  → Otherwise generate a new one: platform.armoriq.ai → Settings → API Keys\n' +
         '  → Put it in .env as ARMORIQ_API_KEY\n' +
         '  → Then run: node check-setup.js\n' +
         'The ungoverned beat needs no key at all: npm run beat:ungoverned',
@@ -208,7 +214,13 @@ export async function runGoal(agent, goal, opts = {}) {
       if (session) {
         // MOVE 1 — declare intent. The plan is signed; every later call is
         // checked against this exact list.
-        await session.startPlan([call], goal);
+        //
+        // The SDK's ToolCallInput is `{ name, args }`, not the planner's
+        // `{ tool, args, rationale }`. Passing the planner object straight
+        // through leaves `name` undefined, and hashToolCalls() then throws
+        // "unsupported type in canonical JSON: undefined" before any network
+        // call is made. Map the fields explicitly.
+        await session.startPlan([{ name: call.tool, args: call.args }], goal);
 
         const decision = await session.check(call.tool, call.args, who);
         // Surface the raw decision so the console shape can be verified.

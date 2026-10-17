@@ -158,6 +158,14 @@ async function main() {
     console.log(`${C.grey}expected: ${beat.expect}${C.reset}`);
 
     if (beat.compare) {
+      // Beat 4 is only interesting if the two identities are actually
+      // different. Same address means the same policy resolves twice, and the
+      // beat would quietly print two identical verdicts.
+      if ((userLow ?? '').toLowerCase() === (userEmail ?? '').toLowerCase()) {
+        console.log(`  ${C.yellow}warning: ARMORIQ_USER_EMAIL_LOW is the same address as ARMORIQ_USER_EMAIL.${C.reset}`);
+        console.log(`  ${C.yellow}Both runs resolve the same policy, so these verdicts cannot differ.${C.reset}`);
+      }
+
       // Beat 4: identical goal, two identities.
       for (const variant of beat.compare) {
         console.log('');

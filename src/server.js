@@ -37,26 +37,67 @@ const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash';
 
 const app = express();
+app.set('trust proxy', 1); // Render / Fly terminate TLS in front of us
 app.use(express.json({ limit: '256kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-/* ── Lazy agents ────────────────────────────────────────────────── */
-// Two singletons: one governed, one with the boundary switched off. The
-// ungoverned one exists so the browser can show the same run both ways.
+/* ── Quota guard ────────────────────────────────────────────────── */
+// The live demo is public and the API keys are ours, so one visitor must not
+// be able to burn the Gemini and ArmorIQ quota the judges need. In-memory is
+// enough here: this is a single-instance demo, and a restart only resets the
+// window. Deliberately dependency-free.
 
-let agents = null;
-async function getAgents() {
-  if (agents) return agents;
-  const governed = await createAgent({
+const RATE_WINDOW_MS = Number(process.env.RATE_WINDOW_MINUTES ?? 10) * 60_000;
+const RATE_MAX_RUNS = Number(process.env.RATE_MAX_RUNS ?? 40);
+const runHits = new Map();
+
+function rateLimitRun(req, res, next) {
+  const now = Date.now();
+  const key = req.ip ?? 'unknown';
+  const recent = (runHits.get(key) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+
+  if (recent.length >= RATE_MAX_RUNS) {
+    const retryAfter = Math.ceil((RATE_WINDOW_MS - (now - recent[0])) / 1000);
+    res.set('Retry-After', String(retryAfter));
+    return res.status(429).json({
+      error: `Demo rate limit reached. Try again in ${Math.ceil(retryAfter / 60)} minute(s).`,
+    });
+  }
+
+  recent.push(now);
+  runHits.set(key, recent);
+
+  // Keep the map from growing without bound on a long-lived instance.
+  if (runHits.size > 5000) {
+    for (const [ip, times] of runHits) {
+      if (!times.some((t) => now - t < RATE_WINDOW_MS)) runHits.delete(ip);
+    }
+  }
+  next();
+}
+
+/* ── Lazy agents ────────────────────────────────────────────────── */
+// Two singletons: one governed, one with the boundary switched off. Built
+// independently on purpose — a broken ArmorIQ key must not take down the
+// ungoverned comparison, which needs no key at all. That contrast is the
+// demo; do not make it depend on the thing it is contrasting with.
+
+let governedAgent = null;
+let ungovernedAgent = null;
+
+async function getAgent(enforce) {
+  if (!enforce) {
+    ungovernedAgent ??= await createAgent({
+      apiKey: API_KEY, userEmail: USER_EMAIL,
+      mcpName: MCP_NAME, agentName: AGENT_NAME, enforce: false,
+    });
+    return ungovernedAgent;
+  }
+  governedAgent ??= await createAgent({
     apiKey: API_KEY, userEmail: USER_EMAIL,
     mcpName: MCP_NAME, agentName: AGENT_NAME, enforce: true,
   });
-  const ungoverned = await createAgent({
-    apiKey: API_KEY, userEmail: USER_EMAIL,
-    mcpName: MCP_NAME, agentName: AGENT_NAME, enforce: false,
-  });
-  agents = { governed, ungoverned };
-  return agents;
+  return governedAgent;
 }
 
 /* ── Routes ─────────────────────────────────────────────────────── */
@@ -106,7 +147,7 @@ app.get('/api/state', (_req, res) => {
   });
 });
 
-app.post('/api/run', async (req, res) => {
+app.post('/api/run', rateLimitRun, async (req, res) => {
   const goal = String(req.body?.goal ?? '').trim();
   const asUser = String(req.body?.as ?? 'user').toLowerCase();
   const enforce = req.body?.enforce !== false;
@@ -114,13 +155,13 @@ app.post('/api/run', async (req, res) => {
   if (!goal) {
     return res.status(400).json({ error: 'provide a non-empty "goal"' });
   }
-  if (!API_KEY || !GEMINI_KEY) {
+  // The ungoverned run needs no ArmorIQ key — only the planner does.
+  if (!GEMINI_KEY || (enforce && !API_KEY)) {
     return res.status(500).json({ error: 'server is missing credentials — check /api/health' });
   }
 
   try {
-    const { governed, ungoverned } = await getAgents();
-    const agent = enforce ? governed : ungoverned;
+    const agent = await getAgent(enforce);
     const userEmail = asUser === 'userlow' ? USER_LOW : USER_EMAIL;
 
     const run = await runGoal(agent, goal, {

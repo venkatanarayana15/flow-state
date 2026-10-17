@@ -55,7 +55,17 @@ async function main() {
   if (!/^ak_(live|test)_/.test(apiKey)) {
     warn('key does not start with ak_live_ or ak_test_ — the SDK validates this prefix');
   } else {
-    ok(`key prefix ${apiKey.startsWith('ak_live_') ? 'ak_live_ (production)' : 'ak_test_ (sandbox)'}`);
+    ok(`key prefix ${apiKey.startsWith('ak_live_') ? 'ak_live_' : 'ak_test_'}`);
+  }
+
+  /* The prefix does NOT say which backend issued the key: a staging key can
+     carry ak_live_. ARMORIQ_ENV picks the endpoints, so print which one is in
+     play — a mismatch here is a 401 that looks exactly like a dead key. */
+  const sdkEnv = (process.env.ARMORIQ_ENV || '').trim().toLowerCase();
+  if (sdkEnv === 'staging' || sdkEnv === 'local') {
+    info(`ARMORIQ_ENV=${sdkEnv} — endpoints resolved from this override`);
+  } else {
+    info('ARMORIQ_ENV not set — using production endpoints (api.armoriq.ai)');
   }
 
   if (!process.env.GEMINI_API_KEY) {
@@ -68,6 +78,21 @@ async function main() {
     warn('ARMORIQ_USER_EMAIL is still the placeholder — set it to your real address');
   } else {
     ok(`ARMORIQ_USER_EMAIL = ${userEmail}`);
+  }
+
+  /* Beat 4 is "same call, two people". If both env vars hold the same
+     address, ArmorIQ resolves the same policy twice and the beat prints two
+     identical verdicts without complaining — a silent failure on stage. */
+  const userLow = process.env.ARMORIQ_USER_EMAIL_LOW;
+  if (!userLow) {
+    warn('ARMORIQ_USER_EMAIL_LOW is not set — beat 4 has nothing to compare');
+  } else if (userEmail && userLow.toLowerCase() === userEmail.toLowerCase()) {
+    bad(
+      'ARMORIQ_USER_EMAIL_LOW is the SAME address as ARMORIQ_USER_EMAIL — ' +
+      'beat 4 will show two identical verdicts',
+    );
+  } else {
+    ok(`ARMORIQ_USER_EMAIL_LOW = ${userLow}`);
   }
   info(`model = ${process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'}`);
 
@@ -88,7 +113,11 @@ async function main() {
     ok(`authenticated — org "${account?.org?.name ?? account?.name ?? 'unnamed'}"`);
   } catch (err) {
     bad(`bootstrap failed — ${err.message}`);
-    console.log(`  ${C.dim}A wrong key fails here. Check platform.armoriq.ai → Settings → API Keys.${C.reset}`);
+    console.log(
+      `  ${C.dim}An expired key fails here — but so does a valid key pointed at the${C.reset}\n` +
+      `  ${C.dim}wrong backend. Check the key at platform.armoriq.ai → Settings → API Keys,${C.reset}\n` +
+      `  ${C.dim}then set ARMORIQ_ENV=staging if the key came from dev.armoriq.ai.${C.reset}`,
+    );
     return finish();
   }
 

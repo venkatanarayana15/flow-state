@@ -4,6 +4,15 @@
 
 Built for the [ArmorIQ Flow State Hackathon](https://armoriq.ai/hackathons/flow-state).
 
+## Submission
+
+| | |
+|---|---|
+| **Live demo** | `https://<app>.onrender.com` — fill in after deploying |
+| **Pitch deck** | [`submission/PayFlow-FlowState-Deck.pptx`](submission/PayFlow-FlowState-Deck.pptx) |
+| **Video** | `https://youtu.be/<id>` — fill in after uploading |
+| **Runbook** | [`submission/README.md`](submission/README.md) — deploy, record, submit |
+
 ---
 
 ## The problem
@@ -219,4 +228,8 @@ cryptographic receipt."
   sent, and exports are returned in memory rather than written anywhere.
 - **`.env` is gitignored** before the first commit. Rotate the ArmorIQ and
   Gemini keys after submitting.
+- **Beat 5 depends on the planner being persuadable, and models differ.**
+  `gemini-3.1-flash-lite` follows the injected ticket; `gemini-3.5-flash-lite`
+  refuses it. That variance is part of the argument, not a bug — pin
+  `GEMINI_MODEL` for a reproducible recording.
 - Built on `@armoriq/sdk` and Gemini. Swapping the LLM touches one function.

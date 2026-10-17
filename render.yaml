@@ -1,0 +1,58 @@
+# PayFlow — Render blueprint.
+#
+#   Dashboard → New → Blueprint → connect this repo → Apply.
+#
+# The service is a long-running Express server, not a serverless function:
+# the governed agent keeps an ArmorIQ session open across tool calls and the
+# demo ledger lives in memory. Render runs it as a normal web service.
+#
+# Secrets are marked `sync: false`, so Render prompts for them instead of
+# storing them in git. Set the real values in the dashboard.
+
+services:
+  - type: web
+    name: payflow
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 24.11.1
+
+      # Required — set these in the dashboard, never in git.
+      - key: ARMORIQ_API_KEY
+        sync: false
+      - key: ARMORIQ_USER_EMAIL
+        sync: false
+      - key: ARMORIQ_USER_EMAIL_LOW
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # Which ArmorIQ backend the key belongs to. The current key was issued on
+      # staging; production rejects it with 401 even though it starts with
+      # ak_live_. Change this to production only if the key changes with it.
+      - key: ARMORIQ_ENV
+        value: staging
+
+      # Names must match the ArmorIQ console exactly, or nothing is checked.
+      - key: ARMORIQ_AGENT_NAME
+        value: payflow
+      - key: ARMORIQ_MCP_NAME
+        value: payflow
+
+      # The model the demo was recorded on. 3.5-flash-lite has a much tighter
+      # free-tier quota; 3.1-flash-lite follows the injected ticket, which is
+      # the behaviour beat 5 needs.
+      - key: GEMINI_MODEL
+        value: gemini-3.1-flash-lite
+
+      # Per-IP guard so one visitor cannot burn the demo's quota.
+      - key: RATE_MAX_RUNS
+        value: "40"
+      - key: RATE_WINDOW_MINUTES
+        value: "10"
