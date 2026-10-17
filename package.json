@@ -1,0 +1,26 @@
+{
+  "name": "payflow",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PayFlow — an accounts-payable agent with a signed scope, and the boundary that holds.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "cli": "node agent-cli.js",
+    "beat:allow": "node agent-cli.js allow",
+    "beat:hold": "node agent-cli.js hold",
+    "beat:deny": "node agent-cli.js deny",
+    "beat:users": "node agent-cli.js users",
+    "beat:ungoverned": "node agent-cli.js ungoverned",
+    "beats": "node agent-cli.js all",
+    "check": "node check-setup.js"
+  },
+  "dependencies": {
+    "@armoriq/sdk": "0.6.10",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,24 @@
+# ─────────────────────────────────────────────────────────────
+#  SECRETS — this file must never be committed.
+#  The repo is PUBLIC. A leaked .env is the single most common
+#  way hackathon teams publish their own API keys.
+# ─────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Logs & runtime
+*.log
+npm-debug.log*
+.cache/
+tmp/
+run-traces/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
